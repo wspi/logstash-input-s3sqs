@@ -86,6 +86,8 @@ class LogStash::Inputs::S3SQS < LogStash::Inputs::Threadable
 
   # Name of the SQS Queue to pull messages from. Note that this is just the name of the queue, not the URL or ARN.
   config :queue, :validate => :string, :required => true
+  # If the message flux is S3 -> SNS -> SQS
+  config :from_sns, :validate => :boolean, :default => false
 
   attr_reader :poller
   attr_reader :s3
@@ -122,6 +124,9 @@ class LogStash::Inputs::S3SQS < LogStash::Inputs::Threadable
     hash = JSON.parse message.body
     # there may be test events sent from the s3 bucket which won't contain a Records array,
     # we will skip those events and remove them from queue
+    if @from_sns then
+      hash = JSON.parse hash['Message']
+    end
     if hash['Records'] then
       # typically there will be only 1 record per event, but since it is an array we will
       # treat it as if there could be more records
